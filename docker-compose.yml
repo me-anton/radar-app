@@ -9,4 +9,5 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DJANGO_DEBUG: "True"
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}

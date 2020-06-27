@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 RUN mkdir /code
 WORKDIR /code
-COPY ./backend/* /code/
+COPY ./backend/ /code/

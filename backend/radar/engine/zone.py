@@ -5,9 +5,7 @@ from random import randint, randrange
 from typing import Iterable, List, Optional
 
 from radar.engine.moving_objects import MovingObject
-from radar.engine.alien_bodies import (
-    Position, alien_max_width, alien_max_height
-)
+from radar.engine.alien_bodies import Position
 
 
 class Zone:
@@ -17,11 +15,6 @@ class Zone:
     def __init__(self, moving_objects: List[MovingObject],
                  width: int = 300, height: int = 100,
                  position_vacancy: Optional[List[List[bool]]] = None):
-        if width < alien_max_width or height < alien_max_height:
-            raise ValueError(
-                f'Zone size {width}x{height} is too small. It has to be '
-                f'at least {alien_max_width}x{alien_max_height}')
-
         # No big reason for that one, just making sure nobody abuses
         # the computational costs that come with this class
         if width >= 1000 or height >= 1000:
@@ -31,16 +24,25 @@ class Zone:
 
         self.width = width
         self.height = height
+
+        self._check_moving_objects_dimensions(moving_objects)
         self.moving_objects = moving_objects
 
-        # if position vacancy matrix isn't provided, create new positions
-        # for moving objects
+        # if position vacancy matrix isn't provided, provided moving objects'
+        # positions are ignored and overridden
         if position_vacancy is None:
             self._position_vacancy = [
                 [True for _ in range(width)] for _ in range(height)]
             self._place_moving_objects()
         else:
             self._position_vacancy = position_vacancy
+
+    def _check_moving_objects_dimensions(self, moving_objects):
+        max_obj_width = max(obj.width for obj in moving_objects)
+        max_obj_height = max(obj.height for obj in moving_objects)
+        if self.width < max_obj_width or self.height < max_obj_height:
+            raise ValueError(
+                f'Zone size {self.width}x{self.height} is too small')
 
     def _place_moving_objects(self):
         for obj in self.moving_objects:

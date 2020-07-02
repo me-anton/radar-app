@@ -29,7 +29,7 @@ class Direction:
     @property
     def opposite(self):
         if self._opposite is None:
-            self._opposite = directions_pool[self._opposite_key]
+            self._opposite = DirectionPool[self._opposite_key]
             del self._opposite_key
             return self._opposite
         else:
@@ -48,7 +48,7 @@ class Direction:
         return provider(pos, width=width, height=height)
 
 
-class _DirectionPool:
+class __DirectionPoolMeta(type):
     __directions: ClassVar[Dict[str, Direction]] = {
         'left':
             Direction('Left',
@@ -85,14 +85,15 @@ class _DirectionPool:
     }
     values = tuple(__directions.values())
 
-    def random_direction(self) -> Direction:
-        return random.choice(self.values)
+    def __getattr__(cls, item):
+        return cls.__directions[item]
 
-    def __getattr__(self, item):
-        return self.__directions[item]
-
-    def __getitem__(self, item: str) -> Direction:
-        return self.__directions[item]
+    def __getitem__(cls, item: str) -> Direction:
+        return cls.__directions[item]
 
 
-directions_pool = _DirectionPool()
+class DirectionPool(metaclass=__DirectionPoolMeta):
+    @classmethod
+    def random_direction(cls) -> Direction:
+        return random.choice(cls.values)
+

@@ -1,6 +1,6 @@
 import pytest
 from radar.engine.alien_bodies import Position
-from radar.engine.directions import directions_pool
+from radar.engine.directions import DirectionPool
 from radar.tests.engine.share import make_positions
 
 
@@ -18,14 +18,14 @@ occupy_when_moving_bottom_right = occupy_when_moving_right + occupy_when_moving_
 
 
 @pytest.mark.parametrize("direction, expected_output", [
-    [directions_pool.left, occupy_when_moving_left],
-    [directions_pool.right, occupy_when_moving_right],
-    [directions_pool.up, occupy_when_moving_up],
-    [directions_pool.down, occupy_when_moving_down],
-    [directions_pool.top_left, occupy_when_moving_top_left],
-    [directions_pool.top_right, occupy_when_moving_top_right],
-    [directions_pool.bottom_left, occupy_when_moving_bottom_left],
-    [directions_pool.bottom_right, occupy_when_moving_bottom_right]
+    [DirectionPool.left, occupy_when_moving_left],
+    [DirectionPool.right, occupy_when_moving_right],
+    [DirectionPool.up, occupy_when_moving_up],
+    [DirectionPool.down, occupy_when_moving_down],
+    [DirectionPool.top_left, occupy_when_moving_top_left],
+    [DirectionPool.top_right, occupy_when_moving_top_right],
+    [DirectionPool.bottom_left, occupy_when_moving_bottom_left],
+    [DirectionPool.bottom_right, occupy_when_moving_bottom_right]
 ])
 def test_positions_to_occupy_by_movement(direction, expected_output):
     assert direction.positions_to_occupy_by_movement(start_pos, width, height) \
@@ -45,14 +45,14 @@ free_when_moving_bottom_right = occupy_when_moving_top_left
 
 
 @pytest.mark.parametrize('direction, expected_output', [
-    [directions_pool.left, free_when_moving_left],
-    [directions_pool.right, free_when_moving_right],
-    [directions_pool.up, free_when_moving_up],
-    [directions_pool.down, free_when_moving_down],
-    [directions_pool.top_left, free_when_moving_top_left],
-    [directions_pool.top_right, free_when_moving_top_right],
-    [directions_pool.bottom_left, free_when_moving_bottom_left],
-    [directions_pool.bottom_right, free_when_moving_bottom_right]
+    [DirectionPool.left, free_when_moving_left],
+    [DirectionPool.right, free_when_moving_right],
+    [DirectionPool.up, free_when_moving_up],
+    [DirectionPool.down, free_when_moving_down],
+    [DirectionPool.top_left, free_when_moving_top_left],
+    [DirectionPool.top_right, free_when_moving_top_right],
+    [DirectionPool.bottom_left, free_when_moving_bottom_left],
+    [DirectionPool.bottom_right, free_when_moving_bottom_right]
 ])
 def test_positions_freed_by_movement(direction, expected_output):
     assert direction.positions_freed_by_movement(start_pos, width, height) \

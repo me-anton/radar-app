@@ -1,4 +1,4 @@
-from radar.engine.moving_objects_meta import Position
+from radar.engine.alien_bodies import Position
 
 
 def _risk_zone_provider(tangent, constant_provider, position_provider):
@@ -52,19 +52,19 @@ left_risk_zone = _horizontal_risk_zone_provider(_leftmost_x_neighbor)
 right_risk_zone = _horizontal_risk_zone_provider(_rightmost_x_neighbor)
 upper_risk_zone = _vertical_risk_zone_provider(_topmost_y_neighbor)
 bottom_risk_zone = _vertical_risk_zone_provider(_lowest_y_neighbor)
-top_left_risk_zone = _diagonal_risk_zone_provider(upper_risk_zone, left_risk_zone,
-                                                  lambda **kwargs:
-                                                      Position(_leftmost_x_neighbor(**kwargs),
-                                                      _topmost_y_neighbor(**kwargs)))
-top_right_risk_zone = _diagonal_risk_zone_provider(upper_risk_zone, right_risk_zone,
-                                                   lambda **kwargs:
-                                                       Position(_rightmost_x_neighbor(**kwargs),
-                                                       _topmost_y_neighbor(**kwargs)))
-bottom_left_risk_zone = _diagonal_risk_zone_provider(bottom_risk_zone, left_risk_zone,
-                                                     lambda **kwargs:
-                                                         Position(_leftmost_x_neighbor(**kwargs),
-                                                         _lowest_y_neighbor(**kwargs)))
-bottom_right_risk_zone = _diagonal_risk_zone_provider(bottom_risk_zone, right_risk_zone,
-                                                      lambda **kwargs:
-                                                          Position(_rightmost_x_neighbor(**kwargs),
-                                                          _lowest_y_neighbor(**kwargs)))
+top_left_risk_zone = \
+    _diagonal_risk_zone_provider(upper_risk_zone, left_risk_zone,
+                                 lambda **kwargs: Position(_leftmost_x_neighbor(**kwargs),
+                                                           _topmost_y_neighbor(**kwargs)))
+top_right_risk_zone = \
+    _diagonal_risk_zone_provider(upper_risk_zone, right_risk_zone,
+                                 lambda **kwargs: Position(_rightmost_x_neighbor(**kwargs),
+                                                           _topmost_y_neighbor(**kwargs)))
+bottom_left_risk_zone = \
+    _diagonal_risk_zone_provider(bottom_risk_zone, left_risk_zone,
+                                 lambda **kwargs: Position(_leftmost_x_neighbor(**kwargs),
+                                                           _lowest_y_neighbor(**kwargs)))
+bottom_right_risk_zone = \
+    _diagonal_risk_zone_provider(bottom_risk_zone, right_risk_zone,
+                                 lambda **kwargs: Position(_rightmost_x_neighbor(**kwargs),
+                                                           _lowest_y_neighbor(**kwargs)))

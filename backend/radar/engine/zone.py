@@ -2,10 +2,10 @@ from collections import namedtuple
 from itertools import repeat
 from operator import attrgetter
 from random import randint, randrange
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from radar.engine.moving_objects import MovingObject
-from radar.engine.moving_objects_meta import (
+from radar.engine.alien_bodies import (
     Position, alien_max_width, alien_max_height
 )
 
@@ -16,7 +16,7 @@ class Zone:
 
     def __init__(self, moving_objects: List[MovingObject],
                  width: int = 300, height: int = 100,
-                 position_vacancy: List[List[bool]] = None):
+                 position_vacancy: Optional[List[List[bool]]] = None):
         if width < alien_max_width or height < alien_max_height:
             raise ValueError(
                 f'Zone size {width}x{height} is too small. It has to be '

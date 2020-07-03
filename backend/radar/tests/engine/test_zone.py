@@ -1,5 +1,6 @@
 import pytest
-from radar.engine.zone import Zone, create_zone, ObjectRequest
+from radar.engine.zone import \
+    Zone, create_zone, ObjectRequest, TooManyMovingObjectsError
 from radar.engine.moving_objects import MovingObject
 from radar.tests.engine.share import assert_pos_moved
 
@@ -16,7 +17,12 @@ def alien0():
 
 def test_zone_too_small(alien0):
     with pytest.raises(ValueError):
-        Zone([alien0], alien_max_width - 1, alien_max_height - 1)
+        Zone([alien0], alien0.width, alien0.height)
+
+
+def test_too_many_moving_objects(alien0):
+    with pytest.raises(TooManyMovingObjectsError):
+        Zone([alien0] * 2, alien0.width * 2, alien0.height)
 
 
 def test_zone_too_big(alien0):

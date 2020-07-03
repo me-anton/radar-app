@@ -26,7 +26,7 @@ class Zone:
         self.width = width
         self.height = height
 
-        self._check_moving_objects_dimensions(moving_objects)
+        self._check_zone_volume(moving_objects)
         self.__moving_objects = moving_objects
 
         # if position vacancy matrix isn't provided, provided moving objects'
@@ -38,12 +38,46 @@ class Zone:
         else:
             self._position_vacancy = position_vacancy
 
-    def _check_moving_objects_dimensions(self, moving_objects):
-        max_obj_width = max(obj.width for obj in moving_objects)
+    def _check_zone_volume(self, moving_objects):
+        """
+        Check if the zone provides enough space to fit all the moving objects
+        with enough space for them to actually move.
+
+        The rule is that the zone has to be at least as tall as all the
+        moving objects with twice their width neatly squeezed in the zone's
+        width
+        """
+        max_obj_width = max(obj.width for obj in moving_objects) * 2
         max_obj_height = max(obj.height for obj in moving_objects)
         if self.width < max_obj_width or self.height < max_obj_height:
-            raise ValueError(
-                f'Zone size {self.width}x{self.height} is too small')
+            raise ValueError('The moving objects are too big')
+
+        min_profile_width = 0
+        min_profile_height = 0
+        line_width = 0
+        max_height_on_line = 0
+        for obj in moving_objects:
+            new_line_width = line_width + obj.width * 2
+            if new_line_width > self.width:
+                if min_profile_width < line_width:
+                    min_profile_width = line_width
+                min_profile_height += max_height_on_line
+                line_width, max_height_on_line = \
+                    self._update_line(obj.width * 2, 0, obj)
+            else:
+                line_width, max_height_on_line = \
+                    self._update_line(new_line_width, max_height_on_line, obj)
+        min_profile_height += max_height_on_line
+
+        if self.width < min_profile_width or self.height < min_profile_height:
+            raise TooManyMovingObjectsError('The zone size is too small')
+
+    @staticmethod
+    def _update_line(new_line_width, max_height_on_line, obj):
+        line_width = new_line_width
+        if max_height_on_line < obj.height:
+            max_height_on_line = obj.height
+        return line_width, max_height_on_line
 
     def _place_moving_objects(self):
         for obj in self.__moving_objects:
@@ -55,8 +89,8 @@ class Zone:
                     self._occupy_region(x, y, obj.width, obj.height)
 
     def _region_is_vacant(self, x, y, width, height):
-        region_vacancy = ((self._position_vacancy[i][j] for j in range(
-            x, x + width) for i in range(y, y + height)))
+        region_vacancy = ((self._position_vacancy[i][j] for j in
+                           range(x, x + width) for i in range(y, y + height)))
         return all(region_vacancy)
 
     def _occupy_region(self, x, y, width, height):
@@ -181,3 +215,7 @@ def _create_moving_objects(objs):
     for body_idx, num in objs:
         moving_objects += [MovingObject(body_idx) for _ in range(num)]
     return moving_objects
+
+
+class TooManyMovingObjectsError(ValueError):
+    pass

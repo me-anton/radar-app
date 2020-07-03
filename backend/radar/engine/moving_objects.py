@@ -33,3 +33,7 @@ class MovingObject:
 
     def get_line_iterator(self):
         return iter(self.body.str_lines)
+
+    def __repr__(self):
+        return f'Obj: body id {self.body_idx}; profile ' \
+               f'{self.width}x{self.height}'

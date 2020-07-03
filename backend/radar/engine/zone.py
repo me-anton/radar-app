@@ -2,6 +2,7 @@ from collections import namedtuple
 from itertools import repeat
 from operator import attrgetter
 from random import randint, randrange
+from copy import deepcopy
 from typing import Iterable, List, Optional
 
 from radar.engine.moving_objects import MovingObject
@@ -26,7 +27,7 @@ class Zone:
         self.height = height
 
         self._check_moving_objects_dimensions(moving_objects)
-        self.moving_objects = moving_objects
+        self.__moving_objects = moving_objects
 
         # if position vacancy matrix isn't provided, provided moving objects'
         # positions are ignored and overridden
@@ -45,7 +46,7 @@ class Zone:
                 f'Zone size {self.width}x{self.height} is too small')
 
     def _place_moving_objects(self):
-        for obj in self.moving_objects:
+        for obj in self.__moving_objects:
             while obj.position is None:
                 x = randint(0, self.width - obj.width)
                 y = randint(0, self.height - obj.height)
@@ -77,7 +78,7 @@ class Zone:
             self._position_vacancy[p.y][p.x] = vacancy
 
     def move_objects(self, max_attempts=7):
-        for obj in self.moving_objects:
+        for obj in self.__moving_objects:
             attempts = 0
             while attempts < max_attempts:
                 goto_positions = obj.estimate_movement()
@@ -107,12 +108,12 @@ class Zone:
         return '\n'.join(lines)
 
     def draw(self, positive_noise=3, negative_noise=5):
-        self.moving_objects.sort(key=attrgetter('position.y'))
+        self.__moving_objects.sort(key=attrgetter('position.y'))
         printable_objects = [_PrintableObject(obj.position.x,
                                               obj.width,
                                               obj.position.y,
                                               obj.get_line_iterator())
-                             for obj in self.moving_objects]
+                             for obj in self.__moving_objects]
         zone_lines = []
         objects_drawn = 0
         for y in range(self.height):
@@ -155,6 +156,10 @@ class Zone:
 
     def __str__(self):
         return self.draw()
+
+    @property
+    def moving_objects(self):
+        return deepcopy(self.__moving_objects)
 
 
 _PrintableObject = namedtuple('_PrintableObject', ('x', 'width', 'y', 'lines'))

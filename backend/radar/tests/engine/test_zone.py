@@ -1,6 +1,5 @@
 import pytest
 from radar.engine.zone import Zone, create_zone, ObjectRequest
-from radar.engine.alien_bodies import alien_max_width, alien_max_height
 from radar.engine.moving_objects import MovingObject
 from radar.tests.engine.share import assert_pos_moved
 
@@ -26,10 +25,9 @@ def test_zone_too_big(alien0):
 
 
 @pytest.mark.parametrize("width, height, moving_objects_by_index", [
-    (alien_max_width, alien_max_height, [ObjectRequest(0, 1)]),
-    (alien_max_width, 100, [ObjectRequest(1, 3)]),
-    (150, alien_max_height, [ObjectRequest(0, 1),
-                             ObjectRequest(1, 1), ObjectRequest(2, 2)])
+    (30, 30, [ObjectRequest(0, 1)]),
+    (30, 100, [ObjectRequest(1, 3)]),
+    (150, 30, [ObjectRequest(0, 1), ObjectRequest(1, 1), ObjectRequest(2, 2)])
 ])
 def test_create_zone(width, height, moving_objects_by_index):
     zone = create_zone(width, height, *moving_objects_by_index)

@@ -35,21 +35,17 @@ ooooooooooooooo
 )
 
 
-def create_alien_bodies(bodies_str: Iterable[str]) \
-        -> Tuple[List[AlienBody], int, int]:
+def create_alien_bodies(bodies_str: Iterable[str]) -> List[AlienBody]:
     _alien_bodies_line_lists = (body.splitlines() for body in bodies_str)
     _alien_bodies_matrices = [[list(line) for line in body]
                               for body in _alien_bodies_line_lists]
 
-    alien_max_width = max(len(body[0]) for body in _alien_bodies_matrices)
-    alien_max_height = max(len(body) for body in _alien_bodies_matrices)
-
     alien_bodies = [AlienBody(body, len(body[0]), len(body))
                     for body in _alien_bodies_matrices]
 
-    return alien_bodies, alien_max_width, alien_max_height
+    return alien_bodies
 
 
-alien_bodies, alien_max_width, alien_max_height = create_alien_bodies(alien_bodies_str)
+alien_bodies = create_alien_bodies(alien_bodies_str)
 
 

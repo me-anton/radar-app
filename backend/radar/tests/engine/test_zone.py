@@ -1,33 +1,60 @@
 import pytest
-from radar.engine.zone import \
-    Zone, create_zone, ObjectRequest, TooManyMovingObjectsError
+import random
+from radar.engine.zone import (
+    Zone, create_custom_zone, ObjectRequest, TooManyMovingObjectsError,
+    SmallZone, MediumZone, LargeZone
+)
 from radar.engine.moving_objects import MovingObject
 from radar.tests.engine.share import assert_pos_moved
 
 
 @pytest.fixture
 def def_zone():
-    return create_zone()
+    return create_custom_zone()
 
 
 @pytest.fixture
-def alien0():
+def alien1():
     return MovingObject(0)
 
 
-def test_zone_too_small(alien0):
+@pytest.fixture
+def alien2():
+    return MovingObject(1)
+
+
+@pytest.fixture
+def alien3():
+    return MovingObject(2)
+
+
+def test_zone_too_small(alien1):
     with pytest.raises(ValueError):
-        Zone([alien0], alien0.width, alien0.height)
+        Zone([alien1], alien1.width, alien1.height)
 
 
-def test_too_many_moving_objects(alien0):
+def test_too_many_moving_objects(alien1):
     with pytest.raises(TooManyMovingObjectsError):
-        Zone([alien0] * 2, alien0.width * 2, alien0.height)
+        Zone([alien1] * 2, alien1.width * 2, alien1.height)
 
 
-def test_zone_too_big(alien0):
+def test_zone_too_big(alien1):
     with pytest.raises(ValueError):
-        Zone([alien0], 1000, 1000)
+        Zone([alien1], 1000, 1000)
+
+
+@pytest.mark.parametrize('zone_cls', [SmallZone, MediumZone, LargeZone])
+def test_max_out_zone(alien1, alien2, alien3, zone_cls):
+    aliens = (alien1, alien2, alien3)
+    moving_objects = []
+    while True:
+        moving_objects.append(random.choice(aliens))
+        try:
+            zone_cls(moving_objects)
+        except TooManyMovingObjectsError:
+            break
+        except Exception as err:
+            raise AssertionError(err)
 
 
 @pytest.mark.parametrize("width, height, moving_objects_by_index", [
@@ -36,7 +63,7 @@ def test_zone_too_big(alien0):
     (150, 30, [ObjectRequest(0, 1), ObjectRequest(1, 1), ObjectRequest(2, 2)])
 ])
 def test_create_zone(width, height, moving_objects_by_index):
-    zone = create_zone(width, height, *moving_objects_by_index)
+    zone = create_custom_zone(width, height, *moving_objects_by_index)
     assert zone.width == width
     assert zone.height == height
     _check_initialized_moving_objects(moving_objects_by_index,

@@ -196,23 +196,62 @@ class Zone:
         return deepcopy(self.__moving_objects)
 
 
+class SmallZone(Zone):
+    width = 75
+    height = 25
+
+    def __init__(self, moving_objects: List[MovingObject],
+                 position_vacancy: Optional[List[List[bool]]] = None):
+        super(SmallZone, self).__init__(moving_objects,
+                                        self.width, self.height,
+                                        position_vacancy)
+
+
+class MediumZone(Zone):
+    width = 150
+    height = 50
+
+    def __init__(self, moving_objects: List[MovingObject],
+                 position_vacancy: Optional[List[List[bool]]] = None):
+        super(MediumZone, self).__init__(moving_objects,
+                                         self.width, self.height,
+                                         position_vacancy)
+
+
+class LargeZone(Zone):
+    width = 300
+    height = 100
+
+    def __init__(self, moving_objects: List[MovingObject],
+                 position_vacancy: Optional[List[List[bool]]] = None):
+        super(LargeZone, self).__init__(moving_objects,
+                                        self.width, self.height,
+                                        position_vacancy)
+
+
 _PrintableObject = namedtuple('_PrintableObject', ('x', 'width', 'y', 'lines'))
 _ObjectLine = namedtuple('_ObjectLine', ('x', 'width', 'line'))
 ObjectRequest = namedtuple('ObjectRequest', ('body_idx', 'num'))
 
 
-def create_zone(width: int = 300, height: int = 100,
-                *moving_objects_by_index: Iterable[ObjectRequest]) -> Zone:
-    moving_objects = _create_moving_objects(
-        moving_objects_by_index or (ObjectRequest(0, 10),
-                                    ObjectRequest(1, 10),
-                                    ObjectRequest(2, 10)))
+def create(zone_cls: Zone.__class__,
+           *obj_requests: Iterable[ObjectRequest]):
+    moving_objects = _create_moving_objects(obj_requests)
+    return zone_cls(moving_objects)
+
+
+def create_custom_zone(width: int = 300, height: int = 100,
+                       *obj_requests: Iterable[ObjectRequest]) -> Zone:
+    moving_objects = _create_moving_objects(obj_requests)
     return Zone(moving_objects, width, height)
 
 
-def _create_moving_objects(objs):
+def _create_moving_objects(obj_requests):
+    obj_requests = obj_requests or (ObjectRequest(0, 10),
+                                    ObjectRequest(1, 10),
+                                    ObjectRequest(2, 10))
     moving_objects = []
-    for body_idx, num in objs:
+    for body_idx, num in obj_requests:
         moving_objects += [MovingObject(body_idx) for _ in range(num)]
     return moving_objects
 

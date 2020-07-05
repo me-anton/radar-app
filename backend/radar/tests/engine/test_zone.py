@@ -1,8 +1,7 @@
 import pytest
 import random
 from radar.engine.zone import (
-    Zone, create_custom_zone, ObjectRequest, TooManyMovingObjectsError,
-    SmallZone, MediumZone, LargeZone
+    Zone, ZoneBuilder, ObjectRequest, TooManyMovingObjectsError
 )
 from radar.engine.moving_objects import MovingObject
 from radar.tests.engine.share import assert_pos_moved
@@ -10,7 +9,7 @@ from radar.tests.engine.share import assert_pos_moved
 
 @pytest.fixture
 def def_zone():
-    return create_custom_zone()
+    return ZoneBuilder.request_custom_zone()
 
 
 @pytest.fixture
@@ -43,14 +42,18 @@ def test_zone_too_big(alien1):
         Zone([alien1], 1000, 1000)
 
 
-@pytest.mark.parametrize('zone_cls', [SmallZone, MediumZone, LargeZone])
-def test_max_out_zone(alien1, alien2, alien3, zone_cls):
+@pytest.mark.parametrize('zone_creating_method', [
+    ZoneBuilder.create_small_zone,
+    ZoneBuilder.create_medium_zone,
+    ZoneBuilder.create_large_zone
+])
+def test_max_out_zone(alien1, alien2, alien3, zone_creating_method):
     aliens = (alien1, alien2, alien3)
     moving_objects = []
     while True:
         moving_objects.append(random.choice(aliens))
         try:
-            zone_cls(moving_objects)
+            zone_creating_method(moving_objects)
         except TooManyMovingObjectsError:
             break
         except Exception as err:
@@ -63,7 +66,8 @@ def test_max_out_zone(alien1, alien2, alien3, zone_cls):
     (150, 30, [ObjectRequest(0, 1), ObjectRequest(1, 1), ObjectRequest(2, 2)])
 ])
 def test_create_zone(width, height, moving_objects_by_index):
-    zone = create_custom_zone(width, height, *moving_objects_by_index)
+    zone = ZoneBuilder.request_custom_zone(width, height,
+                                           *moving_objects_by_index)
     assert zone.width == width
     assert zone.height == height
     _check_initialized_moving_objects(moving_objects_by_index,
@@ -121,3 +125,12 @@ def test_move_objects(def_zone):
         new_pos = obj.position
         direction = obj.direction.name
         assert_pos_moved(old_pos, new_pos, direction, fail_on_unmoved=False)
+
+
+@pytest.mark.parametrize('zone, profile', [
+    [ZoneBuilder.request_small_zone(), ZoneBuilder.small_zone_profile],
+    [ZoneBuilder.request_medium_zone(), ZoneBuilder.medium_zone_profile],
+    [ZoneBuilder.request_large_zone(), ZoneBuilder.large_zone_profile]
+])
+def test_fits_profile(zone, profile):
+    assert zone.fits_profile(profile)

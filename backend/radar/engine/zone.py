@@ -38,6 +38,73 @@ class Zone:
         else:
             self._position_vacancy = position_vacancy
 
+    @property
+    def moving_objects(self):
+        return deepcopy(self.__moving_objects)
+
+    def __str__(self):
+        return self.draw()
+
+    def move_objects(self, max_attempts=7):
+        for obj in self.__moving_objects:
+            attempts = 0
+            while attempts < max_attempts:
+                goto_positions = obj.estimate_movement()
+                if self._are_available(goto_positions):
+                    self._occupy_positions(goto_positions)
+                    freed_positions = obj.move()
+                    self._free_positions(freed_positions)
+                    break
+                else:
+                    obj.evade_collision()
+                    attempts += 1
+
+    def draw_position_vacancy(self):
+        lines = (''.join((self.void if vacant else self.matter
+                          for vacant in line))
+                 for line in self._position_vacancy)
+        return '\n'.join(lines)
+
+    def draw(self, positive_noise=3, negative_noise=5):
+        self.__moving_objects.sort(key=attrgetter('position.y'))
+        printable_objects = [_PrintableObject(obj.position.x,
+                                              obj.width,
+                                              obj.position.y,
+                                              obj.get_line_iterator())
+                             for obj in self.__moving_objects]
+        zone_lines = []
+        objects_drawn = 0
+        for y in range(self.height):
+            obj_lines = []
+            for obj in printable_objects[objects_drawn:]:
+                if y < obj.y:
+                    break
+                else:
+                    try:
+                        obj_line_str = next(obj.lines)
+                    except StopIteration:
+                        objects_drawn += 1
+                    else:
+                        obj_lines.append(_ObjectLine(
+                            obj.x, obj.width, obj_line_str))
+            obj_lines.sort(key=attrgetter('x'))
+            line = []
+            x = 0
+            for obj_line in obj_lines:
+                line += self._fill_void(obj_line.x - x)
+                line += obj_line.line
+                x = obj_line.x + obj_line.width
+            line += self._fill_void(self.width - x)
+            self._apply_noise(line, positive_noise, negative_noise)
+            zone_lines.append(''.join(line))
+        return '\n'.join(zone_lines)
+
+    def fits_profile(self, profile: 'ZoneProfile') -> bool:
+        """
+        Check if the zone has the same parameters as provided profile
+        """
+        return self.width == profile.width and self.height == profile.height
+
     def _check_zone_volume(self, moving_objects):
         """
         Check if the zone provides enough space to fit all the moving objects
@@ -111,20 +178,6 @@ class Zone:
         for p in positions:
             self._position_vacancy[p.y][p.x] = vacancy
 
-    def move_objects(self, max_attempts=7):
-        for obj in self.__moving_objects:
-            attempts = 0
-            while attempts < max_attempts:
-                goto_positions = obj.estimate_movement()
-                if self._are_available(goto_positions):
-                    self._occupy_positions(goto_positions)
-                    freed_positions = obj.move()
-                    self._free_positions(freed_positions)
-                    break
-                else:
-                    obj.evade_collision()
-                    attempts += 1
-
     def _are_available(self, positions):
         try:
             positions_vacancy = (
@@ -134,46 +187,6 @@ class Zone:
             return all(positions_vacancy)
         except IndexError:
             return False
-
-    def draw_position_vacancy(self):
-        lines = (''.join((self.void if vacant else self.matter
-                          for vacant in line))
-                 for line in self._position_vacancy)
-        return '\n'.join(lines)
-
-    def draw(self, positive_noise=3, negative_noise=5):
-        self.__moving_objects.sort(key=attrgetter('position.y'))
-        printable_objects = [_PrintableObject(obj.position.x,
-                                              obj.width,
-                                              obj.position.y,
-                                              obj.get_line_iterator())
-                             for obj in self.__moving_objects]
-        zone_lines = []
-        objects_drawn = 0
-        for y in range(self.height):
-            obj_lines = []
-            for obj in printable_objects[objects_drawn:]:
-                if y < obj.y:
-                    break
-                else:
-                    try:
-                        obj_line_str = next(obj.lines)
-                    except StopIteration:
-                        objects_drawn += 1
-                    else:
-                        obj_lines.append(_ObjectLine(
-                            obj.x, obj.width, obj_line_str))
-            obj_lines.sort(key=attrgetter('x'))
-            line = []
-            x = 0
-            for obj_line in obj_lines:
-                line += self._fill_void(obj_line.x - x)
-                line += obj_line.line
-                x = obj_line.x + obj_line.width
-            line += self._fill_void(self.width - x)
-            self._apply_noise(line, positive_noise, negative_noise)
-            zone_lines.append(''.join(line))
-        return '\n'.join(zone_lines)
 
     def _apply_noise(self, zone_line, positive_noise, negative_noise):
         self._add_distortion(zone_line, positive_noise, self.matter)
@@ -188,73 +201,106 @@ class Zone:
     def _fill_void(self, num):
         return list(repeat(self.void, num))
 
-    def __str__(self):
-        return self.draw()
 
-    @property
-    def moving_objects(self):
-        return deepcopy(self.__moving_objects)
-
-
-class SmallZone(Zone):
-    width = 75
-    height = 25
-
-    def __init__(self, moving_objects: List[MovingObject],
-                 position_vacancy: Optional[List[List[bool]]] = None):
-        super(SmallZone, self).__init__(moving_objects,
-                                        self.width, self.height,
-                                        position_vacancy)
-
-
-class MediumZone(Zone):
-    width = 150
-    height = 50
-
-    def __init__(self, moving_objects: List[MovingObject],
-                 position_vacancy: Optional[List[List[bool]]] = None):
-        super(MediumZone, self).__init__(moving_objects,
-                                         self.width, self.height,
-                                         position_vacancy)
-
-
-class LargeZone(Zone):
-    width = 300
-    height = 100
-
-    def __init__(self, moving_objects: List[MovingObject],
-                 position_vacancy: Optional[List[List[bool]]] = None):
-        super(LargeZone, self).__init__(moving_objects,
-                                        self.width, self.height,
-                                        position_vacancy)
+class TooManyMovingObjectsError(ValueError):
+    pass
 
 
 _PrintableObject = namedtuple('_PrintableObject', ('x', 'width', 'y', 'lines'))
 _ObjectLine = namedtuple('_ObjectLine', ('x', 'width', 'line'))
 ObjectRequest = namedtuple('ObjectRequest', ('body_idx', 'num'))
+ZoneProfile = namedtuple('ZoneProfile', ('width', 'height'))
 
 
-def create(zone_cls: Zone.__class__,
-           *obj_requests: Iterable[ObjectRequest]):
-    moving_objects = _create_moving_objects(obj_requests)
-    return zone_cls(moving_objects)
+class ZoneBuilder:
+    small_zone_profile = ZoneProfile(75, 25)
+    medium_zone_profile = ZoneProfile(150, 50)
+    large_zone_profile = ZoneProfile(300, 100)
 
+    @classmethod
+    def request_small_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+        """
+        Returns a Zone instance with small profile and moving objects created
+        according to obj_requests (or with default objects)
+        """
+        obj_requests = obj_requests or (ObjectRequest(0, 2),
+                                        ObjectRequest(1, 2),
+                                        ObjectRequest(2, 2))
+        return cls.request_custom_zone(*cls.small_zone_profile, *obj_requests)
 
-def create_custom_zone(width: int = 300, height: int = 100,
-                       *obj_requests: Iterable[ObjectRequest]) -> Zone:
-    moving_objects = _create_moving_objects(obj_requests)
-    return Zone(moving_objects, width, height)
+    @classmethod
+    def request_medium_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+        """
+        Creates a Zone instance with medium profile and moving objects created
+        according to obj_requests (or with default objects)
+        """
+        obj_requests = obj_requests or (ObjectRequest(0, 5),
+                                        ObjectRequest(1, 5),
+                                        ObjectRequest(2, 5))
+        return cls.request_custom_zone(*cls.medium_zone_profile, *obj_requests)
 
+    @classmethod
+    def request_large_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+        """
+        Creates a Zone instance with large profile and moving objects created
+        according to obj_requests (or with default objects)
+        """
+        return cls.request_custom_zone(*cls.large_zone_profile, *obj_requests)
 
-def _create_moving_objects(obj_requests):
-    obj_requests = obj_requests or (ObjectRequest(0, 10),
-                                    ObjectRequest(1, 10),
-                                    ObjectRequest(2, 10))
-    moving_objects = []
-    for body_idx, num in obj_requests:
-        moving_objects += [MovingObject(body_idx) for _ in range(num)]
-    return moving_objects
+    @classmethod
+    def request_custom_zone(cls, width: int = 300, height: int = 100,
+                            *obj_requests: Iterable[ObjectRequest]) -> Zone:
+        """
+        Creates a Zone instance with set profile and moving objects created
+        according to obj_requests (or with default objects)
+        """
+        obj_requests = obj_requests or (ObjectRequest(0, 10),
+                                        ObjectRequest(1, 10),
+                                        ObjectRequest(2, 10))
+        moving_objects = cls._create_moving_objects(obj_requests)
+        return Zone(moving_objects, width, height)
 
+    @classmethod
+    def create_small_zone(cls, moving_objects: List[MovingObject],
+                          position_vacancy: Optional[List[List[bool]]] = None) -> Zone:
+        """
+        Creates a Zone instance with small profile
+        """
+        return cls.create_custom_zone(moving_objects, *cls.small_zone_profile,
+                                      position_vacancy=position_vacancy)
 
-class TooManyMovingObjectsError(ValueError):
-    pass
+    @classmethod
+    def create_medium_zone(cls, moving_objects: List[MovingObject],
+                           position_vacancy: Optional[
+                           List[List[bool]]] = None) -> Zone:
+        """
+        Creates a Zone instance with medium profile
+        """
+        return cls.create_custom_zone(moving_objects, *cls.medium_zone_profile,
+                                      position_vacancy=position_vacancy)
+
+    @classmethod
+    def create_large_zone(cls, moving_objects: List[MovingObject],
+                          position_vacancy: Optional[
+                          List[List[bool]]] = None) -> Zone:
+        """
+        Creates a Zone instance with large profile
+        """
+        return cls.create_custom_zone(moving_objects, *cls.large_zone_profile,
+                                      position_vacancy=position_vacancy)
+
+    @staticmethod
+    def create_custom_zone(moving_objects: List[MovingObject],
+                           width: int, height: int,
+                           position_vacancy: Optional[List[List[bool]]] = None) -> Zone:
+        """
+        Creates a Zone instance with set profile
+        """
+        return Zone(moving_objects, width, height, position_vacancy)
+
+    @staticmethod
+    def _create_moving_objects(obj_requests):
+        moving_objects = []
+        for body_idx, num in obj_requests:
+            moving_objects += [MovingObject(body_idx) for _ in range(num)]
+        return moving_objects

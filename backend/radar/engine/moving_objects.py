@@ -1,13 +1,13 @@
 from typing import Set, Optional
-from radar.engine.alien_bodies import Position, alien_bodies
+from radar.engine.body_objects import Position, BodyObjectsPool, BodyObject
 from radar.engine.directions import Direction, DirectionPool
 
 
 class MovingObject:
-    def __init__(self, body_idx: int, position: Optional[Position] = None):
+    def __init__(self, body: BodyObject,
+                 position: Optional[Position] = None):
         self.direction: Direction = DirectionPool.random_direction()
-        self.body_idx = body_idx
-        self.body = alien_bodies[body_idx]
+        self.body = body
         self.height = self.body.height
         self.width = self.body.width
         self.position: Position = position
@@ -32,8 +32,8 @@ class MovingObject:
             self.direction = DirectionPool.random_direction()
 
     def get_line_iterator(self):
-        return iter(self.body.str_lines)
+        return iter(self.body.matrix)
 
     def __repr__(self):
-        return f'Obj: body id {self.body_idx}; profile ' \
+        return f'Obj: body id {self.body.id}; profile ' \
                f'{self.width}x{self.height}'

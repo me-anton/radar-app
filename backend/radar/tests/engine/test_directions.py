@@ -1,5 +1,5 @@
 import pytest
-from radar.engine.alien_bodies import Position
+from radar.engine.body_objects import Position
 from radar.engine.directions import DirectionPool
 from radar.tests.engine.share import make_positions
 

@@ -1,5 +1,7 @@
 import pytest
 import random
+from collections import namedtuple
+from radar.engine.body_objects import BodyObjectsPool
 from radar.engine.zone import (
     Zone, ZoneBuilder, ObjectRequest, TooManyMovingObjectsError
 )
@@ -7,24 +9,37 @@ from radar.engine.moving_objects import MovingObject
 from radar.tests.engine.share import assert_pos_moved
 
 
-@pytest.fixture
-def def_zone():
-    return ZoneBuilder.request_custom_zone()
+pytestmark = pytest.mark.usefixtures('session_db_fix')
 
 
 @pytest.fixture
-def alien1():
-    return MovingObject(0)
+def body_pool():
+    return BodyObjectsPool()
 
 
 @pytest.fixture
-def alien2():
-    return MovingObject(1)
+def zone_builder():
+    return ZoneBuilder()
 
 
 @pytest.fixture
-def alien3():
-    return MovingObject(2)
+def def_zone(zone_builder):
+    return zone_builder.request_custom_zone()
+
+
+@pytest.fixture
+def alien1(body_pool):
+    return MovingObject(body_pool.first)
+
+
+@pytest.fixture
+def alien2(body_pool):
+    return MovingObject(body_pool.second)
+
+
+@pytest.fixture
+def alien3(body_pool):
+    return MovingObject(body_pool.third)
 
 
 def test_zone_too_small(alien1):
@@ -60,14 +75,26 @@ def test_max_out_zone(alien1, alien2, alien3, zone_creating_method):
             raise AssertionError(err)
 
 
-@pytest.mark.parametrize("width, height, moving_objects_by_index", [
-    (30, 30, [ObjectRequest(0, 1)]),
-    (30, 100, [ObjectRequest(1, 3)]),
-    (150, 30, [ObjectRequest(0, 1), ObjectRequest(1, 1), ObjectRequest(2, 2)])
+# pytest wouldn't allow to create db-dependent objects in "parametrize"
+# this namedtuple is a request to create ObjectRequest in the test itself
+ObjectRequestRequest = namedtuple('ObjectRequestRequest', 'attr_str, num')
+
+
+@pytest.mark.parametrize("width, height, requests", [
+    (30, 30, [ObjectRequestRequest('first', 1)]),
+    (30, 100, [ObjectRequestRequest('second', 3)]),
+    (150, 30, [ObjectRequestRequest('first', 1),
+               ObjectRequestRequest('second', 1),
+               ObjectRequestRequest('third', 2)])
 ])
-def test_create_zone(width, height, moving_objects_by_index):
-    zone = ZoneBuilder.request_custom_zone(width, height,
-                                           *moving_objects_by_index)
+def test_create_zone(width, height, requests, body_pool, zone_builder):
+    moving_objects_by_index = []
+    for request in requests:
+        body_obj = getattr(body_pool, request.attr_str)
+        moving_objects_by_index.append(ObjectRequest(body_obj, request.num))
+
+    zone = zone_builder.request_custom_zone(width, height,
+                                            *moving_objects_by_index)
     assert zone.width == width
     assert zone.height == height
     _check_initialized_moving_objects(moving_objects_by_index,
@@ -78,9 +105,9 @@ def _check_initialized_moving_objects(request, moving_objects):
     moving_objects_by_index = request.copy()
     for obj in moving_objects:
         for i, obj_req in enumerate(moving_objects_by_index):
-            if obj_req.body_idx == obj.body_idx:
+            if obj_req.body_obj == obj.body:
                 _fail_on_excess_objects(request, moving_objects, obj_req, i)
-                moving_objects_by_index[i] = ObjectRequest(obj_req.body_idx,
+                moving_objects_by_index[i] = ObjectRequest(obj_req.body_obj,
                                                            obj_req.num - 1)
                 break
 
@@ -89,7 +116,7 @@ def _fail_on_excess_objects(request, moving_objects, obj_req, i):
     if obj_req.num == 0:
         num_of_requested_objs = len(
             [req_obj for req_obj in moving_objects
-             if req_obj.body_idx == obj_req.body_idx])
+             if req_obj.body_obj == obj_req.body_obj])
         requested_num = request[i].num
         pytest.fail(
             'Zone has more objects then the number requested.\n'
@@ -127,10 +154,11 @@ def test_move_objects(def_zone):
         assert_pos_moved(old_pos, new_pos, direction, fail_on_unmoved=False)
 
 
-@pytest.mark.parametrize('zone, profile', [
-    [ZoneBuilder.request_small_zone(), ZoneBuilder.small_zone_profile],
-    [ZoneBuilder.request_medium_zone(), ZoneBuilder.medium_zone_profile],
-    [ZoneBuilder.request_large_zone(), ZoneBuilder.large_zone_profile]
+@pytest.mark.parametrize('zone_provider, profile', [
+    ['request_small_zone', ZoneBuilder.small_zone_profile],
+    ['request_medium_zone', ZoneBuilder.medium_zone_profile],
+    ['request_large_zone', ZoneBuilder.large_zone_profile]
 ])
-def test_fits_profile(zone, profile):
+def test_fits_profile(zone_provider, profile, zone_builder):
+    zone = getattr(zone_builder, zone_provider).__call__()
     assert zone.fits_profile(profile)

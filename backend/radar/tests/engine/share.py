@@ -1,5 +1,5 @@
 from typing import Tuple
-from radar.engine.alien_bodies import Position
+from radar.engine.body_objects import Position
 
 from radar.tests.engine._moving import assert_pos_moved
 

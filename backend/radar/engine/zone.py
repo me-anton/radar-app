@@ -6,7 +6,8 @@ from copy import deepcopy
 from typing import Iterable, List, Optional
 
 from radar.engine.moving_objects import MovingObject
-from radar.engine.alien_bodies import Position
+from radar.engine.body_objects import Position, BodyObjectsPool
+from share.metaclasses import Singleton
 
 
 class Zone:
@@ -208,56 +209,56 @@ class TooManyMovingObjectsError(ValueError):
 
 _PrintableObject = namedtuple('_PrintableObject', ('x', 'width', 'y', 'lines'))
 _ObjectLine = namedtuple('_ObjectLine', ('x', 'width', 'line'))
-ObjectRequest = namedtuple('ObjectRequest', ('body_idx', 'num'))
+ObjectRequest = namedtuple('ObjectRequest', ('body_obj', 'num'))
 ZoneProfile = namedtuple('ZoneProfile', ('width', 'height'))
 
 
-class ZoneBuilder:
+class ZoneBuilder(metaclass=Singleton):
     small_zone_profile = ZoneProfile(75, 25)
     medium_zone_profile = ZoneProfile(150, 50)
     large_zone_profile = ZoneProfile(300, 100)
 
-    @classmethod
-    def request_small_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+    def __init__(self):
+        self.body_pool = BodyObjectsPool()
+
+    def request_small_zone(self, *obj_requests: Iterable[ObjectRequest]) -> Zone:
         """
         Returns a Zone instance with small profile and moving objects created
         according to obj_requests (or with default objects)
         """
-        obj_requests = obj_requests or (ObjectRequest(0, 2),
-                                        ObjectRequest(1, 2),
-                                        ObjectRequest(2, 2))
-        return cls.request_custom_zone(*cls.small_zone_profile, *obj_requests)
+        obj_requests = obj_requests or (ObjectRequest(self.body_pool.first, 2),
+                                        ObjectRequest(self.body_pool.second, 2),
+                                        ObjectRequest(self.body_pool.third, 2))
+        return self.request_custom_zone(*self.small_zone_profile, *obj_requests)
 
-    @classmethod
-    def request_medium_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+    def request_medium_zone(self, *obj_requests: Iterable[ObjectRequest]) -> Zone:
         """
         Creates a Zone instance with medium profile and moving objects created
         according to obj_requests (or with default objects)
         """
-        obj_requests = obj_requests or (ObjectRequest(0, 5),
-                                        ObjectRequest(1, 5),
-                                        ObjectRequest(2, 5))
-        return cls.request_custom_zone(*cls.medium_zone_profile, *obj_requests)
+        obj_requests = obj_requests or (ObjectRequest(self.body_pool.first, 5),
+                                        ObjectRequest(self.body_pool.second, 5),
+                                        ObjectRequest(self.body_pool.third, 5))
+        return self.request_custom_zone(*self.medium_zone_profile,
+                                        *obj_requests)
 
-    @classmethod
-    def request_large_zone(cls, *obj_requests: Iterable[ObjectRequest]) -> Zone:
+    def request_large_zone(self, *obj_requests: Iterable[ObjectRequest]) -> Zone:
         """
         Creates a Zone instance with large profile and moving objects created
         according to obj_requests (or with default objects)
         """
-        return cls.request_custom_zone(*cls.large_zone_profile, *obj_requests)
+        return self.request_custom_zone(*self.large_zone_profile, *obj_requests)
 
-    @classmethod
-    def request_custom_zone(cls, width: int = 300, height: int = 100,
-                            *obj_requests: Iterable[ObjectRequest]) -> Zone:
+    def request_custom_zone(self, width: int = 300, height: int = 100,
+                            *obj_requests: ObjectRequest) -> Zone:
         """
         Creates a Zone instance with set profile and moving objects created
         according to obj_requests (or with default objects)
         """
-        obj_requests = obj_requests or (ObjectRequest(0, 10),
-                                        ObjectRequest(1, 10),
-                                        ObjectRequest(2, 10))
-        moving_objects = cls._create_moving_objects(obj_requests)
+        obj_requests = obj_requests or (ObjectRequest(self.body_pool.first, 10),
+                                        ObjectRequest(self.body_pool.second, 10),
+                                        ObjectRequest(self.body_pool.third, 10))
+        moving_objects = self._create_moving_objects(obj_requests)
         return Zone(moving_objects, width, height)
 
     @classmethod
@@ -299,8 +300,8 @@ class ZoneBuilder:
         return Zone(moving_objects, width, height, position_vacancy)
 
     @staticmethod
-    def _create_moving_objects(obj_requests):
+    def _create_moving_objects(obj_requests: Iterable[ObjectRequest]):
         moving_objects = []
-        for body_idx, num in obj_requests:
-            moving_objects += [MovingObject(body_idx) for _ in range(num)]
+        for body, num in obj_requests:
+            moving_objects += [MovingObject(body) for _ in range(num)]
         return moving_objects

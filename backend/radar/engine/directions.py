@@ -1,6 +1,6 @@
 import random
 from typing import Dict, Callable, Sequence, ClassVar
-from radar.engine.alien_bodies import Position
+from radar.engine.body_objects import Position
 from radar.engine import directions_meta
 
 

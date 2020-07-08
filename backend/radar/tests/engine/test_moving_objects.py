@@ -1,11 +1,20 @@
 import pytest
+from radar.engine.body_objects import BodyObjectsPool
 from radar.engine.moving_objects import MovingObject, Position
 from radar.tests.engine.share import assert_pos_moved
 
 
+pytestmark = pytest.mark.usefixtures('session_db_fix')
+
+
+@pytest.fixture
+def body_pool():
+    return BodyObjectsPool()
+
+
 @pytest.fixture()
-def moving_obj():
-    return MovingObject(body_idx=0, position=Position(1, 1))
+def moving_obj(body_pool):
+    return MovingObject(body=body_pool.first, position=Position(1, 1))
 
 
 def test_estimate_movement(moving_obj):
@@ -39,7 +48,7 @@ def test_evade_collision(moving_obj):
 
 
 def test_get_line_iterator(moving_obj):
-    str_body = moving_obj.body.str_lines
+    str_body = moving_obj.body.matrix
     iter_body = list(moving_obj.get_line_iterator())
     assert str_body == iter_body
 

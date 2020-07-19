@@ -27,6 +27,7 @@ DEBUG = bool(int(os.environ.get('DJANGO_DEBUG', 0)))
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS').split(',')
 
+REDIS_HOSTNAME = os.environ.get('REDIS_HOSTNAME', 'localhost')
 
 # Application definition
 

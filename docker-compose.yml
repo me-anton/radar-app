@@ -15,8 +15,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOSTNAME: "redis"
     depends_on:
       - db
+      - redis
 
   db:
     image: postgres:11-alpine
@@ -28,3 +30,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    image: "redis:6.0-alpine"
+    ports:
+    - "6379:6379"

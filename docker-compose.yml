@@ -6,6 +6,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/code
+      - ./scripts:/scripts
     ports:
       - "8000:8000"
     environment:
@@ -32,6 +33,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   redis:
-    image: "redis:6.0-alpine"
+    image: redis:6.0-alpine
     ports:
     - "6379:6379"

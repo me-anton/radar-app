@@ -11,6 +11,7 @@ class RedisScriptsPool(metaclass=Singleton):
 
     def __init__(self):
         self.r = redis.Redis(host=settings.REDIS_HOSTNAME)
+        self.get_by_pattern = self.register_from_volume('get_by_pattern.lua')
 
     def register_from_volume(self, script_name: str):
         """

@@ -31,3 +31,12 @@ def test_register_from_volume(scripts_pool, r):
     assert script().decode() == 'It works!'
 
     os.remove(script_address)
+
+
+def test_get_by_pattern(scripts_pool, r):
+    keys = ['test:a', 'test:b', 'test:c']
+    values = {b'1', b'2', b'3'}
+    r.mset(dict(zip(keys, values)))
+
+    assert set(scripts_pool.get_by_pattern(args=[10, 'test:*'])) == values, \
+        "Script get_by_pattern.lua doesn't work as intended"

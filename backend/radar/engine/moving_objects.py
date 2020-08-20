@@ -1,5 +1,5 @@
 from typing import Set, Optional
-from radar.engine.body_objects import Position, BodyObjectsPool, BodyObject
+from radar.engine.body_objects import Position, BodyObject
 from radar.engine.directions import Direction, DirectionPool
 
 

@@ -39,14 +39,31 @@ class Zone:
         else:
             self._position_vacancy = position_vacancy
 
+    def update_image(self) -> str:
+        """Update, move and draw all objects in the zone"""
+        self.move_objects()
+        return self.draw()
+
     @property
     def moving_objects(self):
+        """Objects moving across zone with each move_objects method call"""
         return deepcopy(self.__moving_objects)
+
+    def fits_profile(self, profile: 'ZoneProfile') -> bool:
+        """
+        Check if the zone has the same parameters as provided profile
+        """
+        return self.width == profile.width and self.height == profile.height
 
     def __str__(self):
         return self.draw()
 
     def move_objects(self, max_attempts=7):
+        """
+        Move all moving objects in the zone in the direction they were
+        moving or in a new direction in the case of collision;
+        or don't move them at all in the case they are trapped
+        """
         for obj in self.__moving_objects:
             attempts = 0
             while attempts < max_attempts:
@@ -60,13 +77,8 @@ class Zone:
                     obj.evade_collision()
                     attempts += 1
 
-    def draw_position_vacancy(self):
-        lines = (''.join((self.void if vacant else self.matter
-                          for vacant in line))
-                 for line in self._position_vacancy)
-        return '\n'.join(lines)
-
     def draw(self, positive_noise=3, negative_noise=5):
+        """Represent the zone and objects in it as string"""
         self.__moving_objects.sort(key=attrgetter('position.y'))
         printable_objects = [_PrintableObject(obj.position.x,
                                               obj.width,
@@ -100,11 +112,16 @@ class Zone:
             zone_lines.append(''.join(line))
         return '\n'.join(zone_lines)
 
-    def fits_profile(self, profile: 'ZoneProfile') -> bool:
+    def draw_position_vacancy(self):
         """
-        Check if the zone has the same parameters as provided profile
+        Draw all objects in the zone as the place they occupy,
+        ignoring their body strings and only accounting for their profile.
+        Useful for debugging.
         """
-        return self.width == profile.width and self.height == profile.height
+        lines = (''.join((self.void if vacant else self.matter
+                          for vacant in line))
+                 for line in self._position_vacancy)
+        return '\n'.join(lines)
 
     def _check_zone_volume(self, moving_objects):
         """
@@ -204,6 +221,10 @@ class Zone:
 
 
 class TooManyMovingObjectsError(ValueError):
+    """
+    Thrown if there is an attempt to build a zone with more moving objects
+    then it can fit
+    """
     pass
 
 
@@ -214,6 +235,9 @@ ZoneProfile = namedtuple('ZoneProfile', ('width', 'height'))
 
 
 class ZoneBuilder(metaclass=Singleton):
+    """
+    Class for creating Zone class instances and MovingObject instances for them
+    """
     small_zone_profile = ZoneProfile(75, 25)
     medium_zone_profile = ZoneProfile(150, 50)
     large_zone_profile = ZoneProfile(300, 100)

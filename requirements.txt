@@ -6,3 +6,4 @@ hiredis>=1.1,<1.2
 # dev-only
 pytest>=5.4,<5.5
 pytest-django>=3.9,<3.10
+typing-extensions>=3.7,<=3.8

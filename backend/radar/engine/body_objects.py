@@ -1,5 +1,6 @@
 import logging
 import json
+from dataclasses import dataclass
 from collections import namedtuple
 from redis import Redis
 from typing import Iterable, Tuple, List, Iterator, Union, Dict
@@ -12,11 +13,18 @@ from radar.models import AlienBody
 
 
 logger = logging.getLogger(__name__)
-BodyObject = namedtuple('BodyObject', 'id, matrix, width, height')
 Position = namedtuple('Position', ('x', 'y'))
 
 BodiesUpdate = TypedDict('BodiesUpdate', {'dropped_keys': List[str],
                                           'new_records': Dict[str, str]})
+
+
+@dataclass(frozen=True)
+class BodyObject:
+    key: str
+    matrix: List[List[str]]
+    width: int
+    height: int
 
 
 class BodyObjectsPool(metaclass=Singleton):
@@ -84,16 +92,16 @@ class BodyObjectsPool(metaclass=Singleton):
     @staticmethod
     def _create_body_objects(bodies: Iterable[AlienBody])\
             -> Iterator[BodyObject]:
-        body_line_lists = (_BodyLineList(id=body.id,
+        body_line_lists = (_BodyLineList(key=str(body.id),
                                          line_list=body.body_str.splitlines())
                            for body in bodies)
 
-        body_matrices = [_BodyMatrix(id=body.id,
+        body_matrices = [_BodyMatrix(key=body.key,
                                      matrix=[list(line) for line
                                              in body.line_list])
                          for body in body_line_lists]
 
-        body_objects = (BodyObject(id=body.id,
+        body_objects = (BodyObject(key=body.key,
                                    matrix=body.matrix,
                                    width=len(body.matrix[0]),
                                    height=len(body.matrix))
@@ -102,5 +110,5 @@ class BodyObjectsPool(metaclass=Singleton):
         return body_objects
 
 
-_BodyLineList = namedtuple('_BodyLineLists', 'id, line_list')
-_BodyMatrix = namedtuple('_BodyMatrix', 'id, matrix')
+_BodyLineList = namedtuple('_BodyLineLists', 'key, line_list')
+_BodyMatrix = namedtuple('_BodyMatrix', 'key, matrix')

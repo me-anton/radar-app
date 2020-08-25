@@ -1,7 +1,6 @@
 import logging
 import json
 from dataclasses import dataclass
-from collections import namedtuple
 from redis import Redis
 from typing import Iterable, Tuple, List, Iterator, Union, Dict
 from typing_extensions import TypedDict
@@ -23,6 +22,14 @@ class BodyObject:
     matrix: List[List[str]]
     width: int
     height: int
+
+    @staticmethod
+    def generate(key: str, body: str) -> 'BodyObject':
+        line_list = body.splitlines()
+        matrix = [list(line) for line in line_list]
+
+        return BodyObject(key=key, matrix=matrix,
+                          width=len(matrix[0]), height=len(matrix))
 
 
 class BodyObjectsPool(metaclass=Singleton):
@@ -82,31 +89,9 @@ class BodyObjectsPool(metaclass=Singleton):
     def _get_default(self, index):
         return self.__default_bodies[index]
 
-    def _generate_defaults(self, num_of_defaults):
+    @staticmethod
+    def _generate_defaults(num_of_defaults):
         logger.info('Generating default bodies')
         query = AlienBody.objects.filter(id__lte=num_of_defaults)
-        return tuple(self._create_body_objects(query))
-
-    @staticmethod
-    def _create_body_objects(bodies: Iterable[AlienBody])\
-            -> Iterator[BodyObject]:
-        body_line_lists = (_BodyLineList(key=str(body.id),
-                                         line_list=body.body_str.splitlines())
-                           for body in bodies)
-
-        body_matrices = [_BodyMatrix(key=body.key,
-                                     matrix=[list(line) for line
-                                             in body.line_list])
-                         for body in body_line_lists]
-
-        body_objects = (BodyObject(key=body.key,
-                                   matrix=body.matrix,
-                                   width=len(body.matrix[0]),
-                                   height=len(body.matrix))
-                        for body in body_matrices)
-
-        return body_objects
-
-
-_BodyLineList = namedtuple('_BodyLineLists', 'key, line_list')
-_BodyMatrix = namedtuple('_BodyMatrix', 'key, matrix')
+        return tuple(BodyObject.generate(body.id, body.body_str)
+                     for body in query)

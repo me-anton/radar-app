@@ -5,8 +5,9 @@ from random import randint, randrange
 from copy import deepcopy
 from typing import Iterable, List, Optional
 
+from radar.engine.directions_meta import Position
 from radar.engine.moving_objects import MovingObject
-from radar.engine.body_objects import Position, BodyObjectsPool
+from radar.engine.body_objects import BodyObjectsPool
 from share.metaclasses import Singleton
 
 

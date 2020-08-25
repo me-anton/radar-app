@@ -1,4 +1,7 @@
-from radar.engine.body_objects import Position
+from collections import namedtuple
+
+
+Position = namedtuple('Position', ('x', 'y'))
 
 
 def _risk_zone_provider(tangent, constant_provider, position_provider):

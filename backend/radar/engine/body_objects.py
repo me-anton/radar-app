@@ -13,8 +13,6 @@ from radar.models import AlienBody
 
 
 logger = logging.getLogger(__name__)
-Position = namedtuple('Position', ('x', 'y'))
-
 BodiesUpdate = TypedDict('BodiesUpdate', {'dropped_keys': List[str],
                                           'new_records': Dict[str, str]})
 

@@ -1,5 +1,6 @@
 from typing import Set, Optional
-from radar.engine.body_objects import Position, BodyObject
+from radar.engine.body_objects import BodyObject
+from radar.engine.directions_meta import Position
 from radar.engine.directions import Direction, DirectionPool
 
 
@@ -35,5 +36,5 @@ class MovingObject:
         return iter(self.body.matrix)
 
     def __repr__(self):
-        return f'Obj: body id {self.body.id}; profile ' \
+        return f'Obj: body key {self.body.key}; profile ' \
                f'{self.width}x{self.height}'

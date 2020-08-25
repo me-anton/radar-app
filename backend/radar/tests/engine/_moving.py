@@ -1,6 +1,6 @@
 import logging
 import os
-from radar.engine.body_objects import Position
+from radar.engine.directions_meta import Position
 
 logger = logging.getLogger('.'.join(os.path.splitext(__file__)[:-1]))
 

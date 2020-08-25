@@ -9,6 +9,7 @@ from backend import settings
 from caching.scripts import RedisScriptsPool
 from share.metaclasses import Singleton
 from radar.models import AlienBody
+from radar.validation import validate_body_str_profile
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ class BodyObjectsPool(metaclass=Singleton):
 
     def add_body(self, body: Union[str, bytes], body_id: str) -> None:
         """Cache the requested body string in Redis db"""
+        validate_body_str_profile(body)
         key = self.make_body_key(body_id)
         self._redis.set(key, body, self.body_expiration)
 
@@ -86,12 +88,12 @@ class BodyObjectsPool(metaclass=Singleton):
     def third(self):
         return self._get_default(2)
 
-    def _get_default(self, index):
+    def _get_default(self, index) -> BodyObject:
         return self.__default_bodies[index]
 
     @staticmethod
     def _generate_defaults(num_of_defaults):
         logger.info('Generating default bodies')
         query = AlienBody.objects.filter(id__lte=num_of_defaults)
-        return tuple(BodyObject.generate(body.id, body.body_str)
+        return tuple(BodyObject.generate(str(body.id), body.body_str)
                      for body in query)

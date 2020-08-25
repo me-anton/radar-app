@@ -3,11 +3,11 @@ from itertools import repeat
 from operator import attrgetter
 from random import randint, randrange
 from copy import deepcopy
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Dict, Optional
 
 from radar.engine.directions_meta import Position
 from radar.engine.moving_objects import MovingObject
-from radar.engine.body_objects import BodyObjectsPool
+from radar.engine.body_objects import BodyObjectsPool, BodyObject
 from share.metaclasses import Singleton
 
 
@@ -17,7 +17,8 @@ class Zone:
 
     def __init__(self, moving_objects: List[MovingObject],
                  width: int = 300, height: int = 100,
-                 position_vacancy: Optional[List[List[bool]]] = None):
+                 position_vacancy: Optional[List[List[bool]]] = None,
+                 max_objects_amount: int = 60):
         # No big reason for that one, just making sure nobody abuses
         # the computational costs that come with this class
         if width >= 1000 or height >= 1000:
@@ -27,37 +28,49 @@ class Zone:
 
         self.width = width
         self.height = height
+        self.max_objects_amount = max_objects_amount
 
         self._check_zone_volume(moving_objects)
         self.__moving_objects = moving_objects
+
+        self._body_pool = BodyObjectsPool()
 
         # if position vacancy matrix isn't provided, provided moving objects'
         # positions are ignored and overridden
         if position_vacancy is None:
             self._position_vacancy = [
                 [True for _ in range(width)] for _ in range(height)]
-            self._place_moving_objects()
+            self._place_moving_objects(self.__moving_objects)
         else:
             self._position_vacancy = position_vacancy
-
-    def update_image(self) -> str:
-        """Update, move and draw all objects in the zone"""
-        self.move_objects()
-        return self.draw()
 
     @property
     def moving_objects(self):
         """Objects moving across zone with each move_objects method call"""
         return deepcopy(self.__moving_objects)
 
+    def update_image(self) -> str:
+        """Update, move and draw all objects in the zone"""
+        self.update_objects()
+        self.move_objects()
+        return self.draw()
+
+    def update_objects(self):
+        """
+        Check objects status in cache, delete expired ones and add new ones
+        if there is a place available
+        """
+        update = self._body_pool.update_bodies((obj.body.key for obj
+                                                in self.__moving_objects),
+                                               self.max_objects_amount)
+        self._drop_moving_objects(update['dropped_keys'])
+        self._attach_new_moving_objects(update['new_records'])
+
     def fits_profile(self, profile: 'ZoneProfile') -> bool:
         """
         Check if the zone has the same parameters as provided profile
         """
         return self.width == profile.width and self.height == profile.height
-
-    def __str__(self):
-        return self.draw()
 
     def move_objects(self, max_attempts=7):
         """
@@ -113,6 +126,9 @@ class Zone:
             zone_lines.append(''.join(line))
         return '\n'.join(zone_lines)
 
+    def __str__(self):
+        return self.draw()
+
     def draw_position_vacancy(self):
         """
         Draw all objects in the zone as the place they occupy,
@@ -165,8 +181,8 @@ class Zone:
             max_height_on_line = obj.height
         return line_width, max_height_on_line
 
-    def _place_moving_objects(self):
-        for obj in self.__moving_objects:
+    def _place_moving_objects(self, moving_objects):
+        for obj in moving_objects:
             while obj.position is None:
                 x = randint(0, self.width - obj.width)
                 y = randint(0, self.height - obj.height)
@@ -174,10 +190,28 @@ class Zone:
                     obj.position = Position(x, y)
                     self._occupy_region(x, y, obj.width, obj.height)
 
+    def _attach_new_moving_objects(self, records: Dict[str, str]):
+        new_moving_objects = (MovingObject(BodyObject.generate(key, body_str))
+                              for key, body_str in records.items())
+        self.__moving_objects.extend(new_moving_objects)
+        self._place_moving_objects(new_moving_objects)
+
+    def _drop_moving_objects(self, keys: List[str]):
+        for key in keys:
+            dropped_obj_idx = next(i for i, obj
+                                   in enumerate(self.__moving_objects)
+                                   if obj.body.key == key)
+            obj = self.__moving_objects.pop(dropped_obj_idx)
+            self._free_region(obj.position.x, obj.position.y,
+                              obj.width, obj.height)
+
     def _region_is_vacant(self, x, y, width, height):
         region_vacancy = ((self._position_vacancy[i][j] for j in
                            range(x, x + width) for i in range(y, y + height)))
         return all(region_vacancy)
+
+    def _free_region(self, x, y, width, height):
+        self._change_region_vacancy(x, y, width, height, True)
 
     def _occupy_region(self, x, y, width, height):
         self._change_region_vacancy(x, y, width, height, False)

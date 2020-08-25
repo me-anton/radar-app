@@ -1,7 +1,8 @@
 import pytest
 import random
+from unittest import mock
 from collections import namedtuple
-from radar.engine.body_objects import BodyObjectsPool
+from radar.engine.body_objects import BodyObjectsPool, BodyObject
 from radar.engine.zone import (
     Zone, ZoneBuilder, ObjectRequest, TooManyMovingObjectsError
 )
@@ -40,6 +41,13 @@ def alien2(body_pool):
 @pytest.fixture
 def alien3(body_pool):
     return MovingObject(body_pool.third)
+
+
+@pytest.fixture
+def new_body():
+    return 'o--o\n' \
+           '-oo-\n' \
+           'o--o'
 
 
 def test_zone_too_small(alien1):
@@ -162,3 +170,21 @@ def test_move_objects(def_zone):
 def test_fits_profile(zone_provider, profile, zone_builder):
     zone = getattr(zone_builder, zone_provider).__call__()
     assert zone.fits_profile(profile)
+
+
+def test_update_objects(body_pool, new_body):
+    known_expired_keys = ['a', 'b']
+    known_live_keys = ['c', 'd']
+    known_keys = known_live_keys + known_expired_keys
+    unknown_live_keys = ['e', 'f', 'g']
+    live_keys = {*known_live_keys, *unknown_live_keys}
+
+    body_pool.update_bodies = mock.Mock(
+        return_value={'dropped_keys': known_expired_keys,
+                      'new_records': {key: new_body for key
+                                      in unknown_live_keys}}
+    )
+    zone = Zone([MovingObject(BodyObject.generate(key, new_body))
+                 for key in known_keys], 50, 50)
+    zone.update_objects()
+    assert set(obj.body.key for obj in zone.moving_objects) == live_keys
